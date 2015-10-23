@@ -25,6 +25,7 @@
       var includeTimestamp = false;
       var tag = null;
       var sendConsoleErrors = false;
+      var loggingEnabled = false;
       var logToConsole = true;
 
       // The minimum level of messages that should be sent to loggly.
@@ -137,6 +138,15 @@
         return logToConsole;
       };
 
+      this.loggingEnabled = function(flag) {
+        if (angular.isDefined(flag)) {
+            loggingEnabled = !!flag;
+            return self;
+        }
+
+        return loggingEnabled;
+      }
+
       this.$get = [ '$injector', function ($injector) {
 
         var lastLog = null;
@@ -176,8 +186,9 @@
 
         return {
           lastLog: function(){ return lastLog },
-          sendConsoleErrors: function(){ return sendConsoleErrors },
+          sendConsoleErrors: self.sendConsoleErrors,
           level : function() { return level },
+          loggingEnabled: self.loggingEnabled,
           isLevelEnabled : self.isLevelEnabled,
           attach: attach,
           sendMessage: sendMessage,
@@ -213,13 +224,15 @@
 
           //send console error messages to Loggly
           window.onerror = function (msg, url, line, col) {
-            logger.sendMessage({
-              level : 'ERROR',
-              message: msg,
-              url: url,
-              line: line,
-              col: col
-            });
+            if (logger.loggingEnabled()) {
+                logger.sendMessage({
+                    level : 'ERROR',
+                    message: msg,
+                    url: url,
+                    line: line,
+                    col: col
+                });
+            }
 
             if (_onerror && typeof _onerror === 'function') {
               _onerror.apply(window, arguments);
@@ -237,7 +250,9 @@
             }
 
             // Skip messages that have a level that's lower than the configured level for this logger.
-            if( !logger.isLevelEnabled( level ) ) {
+            // ...also skip if we disabled logs
+            //        - Tbrockman Oct. 23, 2015
+            if( !logger.isLevelEnabled( level ) && !logger.loggingEnabled()) {
               return;
             }
 
