@@ -158,7 +158,7 @@
          */
         var sendMessage = function (data) {
           //If a token is not configured, don't do anything.
-          if (!token) {
+          if (!token || !loggingEnabled) {
             return;
           }
 
@@ -224,15 +224,13 @@
 
           //send console error messages to Loggly
           window.onerror = function (msg, url, line, col) {
-            if (logger.loggingEnabled()) {
-                logger.sendMessage({
-                    level : 'ERROR',
-                    message: msg,
-                    url: url,
-                    line: line,
-                    col: col
-                });
-            }
+            logger.sendMessage({
+                level : 'ERROR',
+                message: msg,
+                url: url,
+                line: line,
+                col: col
+            });
 
             if (_onerror && typeof _onerror === 'function') {
               _onerror.apply(window, arguments);
@@ -252,7 +250,7 @@
             // Skip messages that have a level that's lower than the configured level for this logger.
             // ...also skip if we disabled logs
             //        - Tbrockman Oct. 23, 2015
-            if( !logger.isLevelEnabled( level ) && !logger.loggingEnabled()) {
+            if(!logger.loggingEnabled() || !logger.isLevelEnabled( level )) {
               return;
             }
 
